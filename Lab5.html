@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Калькулятор</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --key: #334155;
+      --key-hover: #475569;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --danger: #f87171;
+      --text: #f8fafc;
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #1e3a8a, #0f172a 70%);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: var(--text);
+      padding: 20px;
+    }
+
+    .calculator {
+      width: 100%;
+      max-width: 360px;
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .display {
+      background: #0b1220;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: right;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .display .history {
+      font-size: 14px;
+      color: #64748b;
+      min-height: 20px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .display .current {
+      font-size: 40px;
+      font-weight: 600;
+      margin-top: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      border: none;
+      outline: none;
+      padding: 18px 0;
+      font-size: 20px;
+      font-weight: 600;
+      border-radius: 12px;
+      background: var(--key);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+
+    button:hover {
+      background: var(--key-hover);
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    .op {
+      background: var(--accent);
+      color: #0f172a;
+    }
+
+    .op:hover {
+      background: var(--accent-hover);
+    }
+
+    .clear {
+      background: var(--danger);
+      color: #0f172a;
+    }
+
+    .clear:hover {
+      background: #ef4444;
+    }
+
+    .equal {
+      grid-column: span 2;
+      background: var(--accent);
+      color: #0f172a;
+    }
+
+    .equal:hover {
+      background: var(--accent-hover);
+    }
+
+    @media (max-width: 400px) {
+      .display .current {
+        font-size: 32px;
+      }
+      button {
+        padding: 14px 0;
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <div class="display">
+      <div class="history" id="history"></div>
+      <div class="current" id="current">0</div>
+    </div>
+    <div class="keys">
+      <button class="clear" data-action="clear">C</button>
+      <button data-action="del">⌫</button>
+      <button class="op" data-op="%">%</button>
+      <button class="op" data-op="/">÷</button>
+
+      <button data-num="7">7</button>
+      <button data-num="8">8</button>
+      <button data-num="9">9</button>
+      <button class="op" data-op="*">×</button>
+
+      <button data-num="4">4</button>
+      <button data-num="5">5</button>
+      <button data-num="6">6</button>
+      <button class="op" data-op="-">−</button>
+
+      <button data-num="1">1</button>
+      <button data-num="2">2</button>
+      <button data-num="3">3</button>
+      <button class="op" data-op="+">+</button>
+
+      <button data-num="0" style="grid-column: span 2;">0</button>
+      <button data-num=".">,</button>
+      <button class="equal" data-action="equals">=</button>
+    </div>
+  </div>
+
+  <script>
+    const currentEl = document.getElementById('current');
+    const historyEl = document.getElementById('history');
+    let current = '0';
+    let previous = null;
+    let operator = null;
+    let resetNext = false;
+
+    function render() {
+      currentEl.textContent = current.replace('.', ',');
+      historyEl.textContent = previous !== null && operator
+        ? `${previous} ${operator === '*' ? '×' : operator === '/' ? '÷' : operator}`
+        : '';
+    }
+
+    function inputNumber(n) {
+      if (resetNext) {
+        current = '0';
+        resetNext = false;
+      }
+      if (n === '.') {
+        if (!current.includes('.')) current += '.';
+      } else {
+        current = current === '0' ? n : current + n;
+      }
+      render();
+    }
+
+    function calculate(a, b, op) {
+      a = parseFloat(a); b = parseFloat(b);
+      switch (op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': return b === 0 ? 0 : a / b;
+        case '%': return a % b;
+      }
+      return b;
+    }
+
+    document.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.num !== undefined) {
+          inputNumber(btn.dataset.num);
+        } else if (btn.dataset.op) {
+          if (previous !== null && operator && !resetNext) {
+            current = String(calculate(previous, current, operator));
+          }
+          previous = current;
+          operator = btn.dataset.op;
+          resetNext = true;
+          render();
+        } else if (btn.dataset.action === 'clear') {
+          current = '0'; previous = null; operator = null; resetNext = false;
+          render();
+        } else if (btn.dataset.action === 'del') {
+          current = current.length > 1 ? current.slice(0, -1) : '0';
+          render();
+        } else if (btn.dataset.action === 'equals') {
+          if (previous !== null && operator) {
+            current = String(calculate(previous, current, operator));
+            previous = null; operator = null; resetNext = true;
+            render();
+          }
+        }
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>
